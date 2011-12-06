@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<flexLibProperties includeAllClasses="true" useMultiPlatformConfig="false" version="3">
+  <includeClasses>
+    <classEntry path="com.netpbm.NetPBM"/>
+    <classEntry path="com.netpbm.decoder.PBMDecoder"/>
+    <classEntry path="com.netpbm.decoder.NetPBMDecoder"/>
+    <classEntry path="com.netpbm.events.NetPBMEvent"/>
+    <classEntry path="com.netpbm.io.FileReader"/>
+    <classEntry path="com.netpbm.io.Reader"/>
+  </includeClasses>
+  <includeResources/>
+  <namespaceManifests/>
+</flexLibProperties>
