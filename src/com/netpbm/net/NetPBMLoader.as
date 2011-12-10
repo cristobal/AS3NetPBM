@@ -14,6 +14,7 @@ package com.netpbm.net
 	import flash.net.URLRequest;
 	import flash.net.URLStream;
 	import flash.utils.ByteArray;
+	import flash.utils.getTimer;
 
 	/**
 	 * @Event complete
@@ -194,8 +195,9 @@ package com.netpbm.net
 		private function handleComplete(event:Event):void
 		{
 			try {
+				var time:int = getTimer();
 				bitmapData = NetPBMDecoder.decode(bytes);
-				
+				trace("decoding done in", getTimer() - time,"ms");
 				// forward event
 				dispatchEvent(event);	
 			}
