@@ -1,22 +1,19 @@
 package com.netpbm.decoder
 {
-	
 	import flash.display.BitmapData;
 	import flash.geom.Point;
 	import flash.utils.ByteArray;
 	import flash.utils.getTimer;
 
-	// TODO: PBM ASCII Decoder - support for when lines are longer than 70chars…	
+	// TODO: PBM ASCII Decoder - support for when white spaces in between
 	
-	// TODO: PGM ASCII Decoder - support for when lines are longer than 70chars…	
+	// TODO: PGM ASCII Decoder - support for when lines are longer than 70chars	
 	// TODO: PGM use the ITU-R Recommendation BT.709 for the gamma transfer function LUT
-	// TODO: PGM add support for max values > 255…
+	// TODO: PGM add support for max values > 255 
 	
-	// TODO: PPM ASCII Decoder - support for when lines are longer than 70chars…	
+	// TODO: PPM ASCII Decoder - support for when lines are longer than 70chars	
 	// TODO: PPM use the ITU-R Recommendation BT.709 for the gamma transfer function LUT
-	// TODO: PPM add support for max values > 255
-	
-
+	// TODO: PPM add support for max values > 255 
 	
 	/**
 	 * NetPBMDecoder.as
@@ -25,17 +22,26 @@ package com.netpbm.decoder
 	 * @version {{VERSION_NUMBER}}
 	 */ 
 	public class NetPBMDecoder
-	{
+	{		
 		
 		//--------------------------------------------------------------------------
 		//
 		//  Class constants
 		//
 		//--------------------------------------------------------------------------
+		
+		/**
+		 * @public
+		 * 	Formats
+		 */ 
 		public static const PORTABLE_BITMAP:String  = "PBM";
 		public static const PORTABLE_GRAYMAP:String	= "PGM";
 		public static const PORTABLE_PIXMAP:String	= "PPM";
 		
+		/**
+		 * @public
+		 * 	Magic numbers
+		 */ 
 		public static const PORTABLE_BITMAP_ASCII:String  	= "P1";
 		public static const PORTABLE_GRAYMAP_ASCII:String	= "P2";
 		public static const PORTABLE_PIXMAP_ASCII:String	= "P3";
@@ -113,6 +119,7 @@ package com.netpbm.decoder
 		 * @private
 		 */ 
 		private static var blackColor:uint = 0;
+		
 		
 		//--------------------------------------------------------------------------
 		//
@@ -227,20 +234,32 @@ package com.netpbm.decoder
 		private static function decodeBitmapASCII(values:Vector.<uint>, bytes:ByteArray, width:int, height:int):void
 		{
 			
-			var row:String;
-			var args:Array;
+			var line:String;
 			var value:int;
 			var color:uint;
-			for (var y:int = 0; y < height; y++) {
-				row = readLine(bytes);
+			var index:int = 0;
+			var flag:Boolean;
+			while(true) {
+				line = readLine(bytes);
+				if (!line) {
+					break;
+				}
 				
-				// clean old format where we have spaces
-				row = row.split(" ").join("");
-				
-				for (var x:int = 0; x < width; x++) {
-					value = int(row.charAt(x));
+				// clean old format where we have spaces	
+				line = line.split(/\s+/).join("");
+				for (var i:int = 0, l:int = line.length; i < l; i++) {
+					value = int(line.charAt(i));
 					color = value == 1 ? blackColor : whiteColor;
-					values[x + (y * width)] = color;
+					values[index++] = color;
+					if (index == values.length) {
+						flag = true;
+						break;
+					}
+					// values[x + (y * width)] = color;
+				}
+				
+				if (flag) {
+					break;
 				}
 			}
 		}
@@ -460,8 +479,6 @@ package com.netpbm.decoder
 					vg = int(args[(x * 3) + 1]);
 					vb = int(args[(x * 3) + 2]);
 					
-					trace(vr, vg, vb);
-					
 					r = lut[vr][0];
 					g = lut[vg][0];
 					b = lut[vb][0];
@@ -471,7 +488,12 @@ package com.netpbm.decoder
 				}
 			}
 		}
-			
+		
+		/**
+		 * Create gamma transfer lut
+		 * 
+		 * @param max
+		 */
 		private static function createPixmapGammatransferLUT(max:int):Vector.<Vector.<uint>>
 		{
 			var lut:Vector.<Vector.<uint>> = new Vector.<Vector.<uint>>(max + 1);
@@ -489,8 +511,6 @@ package com.netpbm.decoder
 			
 			return lut;
 		}
-
-		
 		
 		
 		//--------------------------------------
@@ -498,7 +518,6 @@ package com.netpbm.decoder
 		// Common methods
 		//
 		//--------------------------------------
-		
 		
 		/**
 		 * Gray to pixel value
@@ -594,7 +613,7 @@ package com.netpbm.decoder
 			var char:int;
 			var characters:Array = [];
 			
-			while(true) {
+			while(bytes.position < bytes.length) {
 				char = bytes[bytes.position++];
 				if ((char == LF) || (char == CR)) {
 					break;
