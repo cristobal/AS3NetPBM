@@ -4,14 +4,12 @@ package com.netpbm.decoder
 	import flash.geom.Point;
 	import flash.utils.ByteArray;
 	import flash.utils.getTimer;
-
-	// TODO: PBM ASCII Decoder - support for when white spaces in between
 	
-	// TODO: PGM ASCII Decoder - support for when lines are longer than 70chars	
+	// NOTE: Decoding large images could be batched to lower UI-responsiveness especially in ASCII-mode
+	
 	// TODO: PGM use the ITU-R Recommendation BT.709 for the gamma transfer function LUT
 	// TODO: PGM add support for max values > 255 
 	
-	// TODO: PPM ASCII Decoder - support for when lines are longer than 70chars	
 	// TODO: PPM use the ITU-R Recommendation BT.709 for the gamma transfer function LUT
 	// TODO: PPM add support for max values > 255 
 	
@@ -95,7 +93,12 @@ package com.netpbm.decoder
 		 * @private
 		 */ 
 		private static var commentRe:RegExp = /^#/;
-
+		
+		/**
+		 * @private
+		 */ 
+		private static var spaceRe:RegExp = /\s+/;
+		
 		/**
 		 * @private
 		 */ 
@@ -242,6 +245,9 @@ package com.netpbm.decoder
 			while(true) {
 				line = readLine(bytes);
 				if (!line) {
+					if (bytes.length < bytes.position) {
+						continue;
+					}
 					break;
 				}
 				
@@ -328,33 +334,43 @@ package com.netpbm.decoder
 		 */
 		private static function decodeGraymapASCII(values:Vector.<uint>, bytes:ByteArray, max:int, width:int, height:int):void
 		{
-			var row:String;
+			var line:String;
 			var arg:String;
 			var args:Array;
 
 			var value:int;
 			var color:uint;
+			var index:int = 0;
+			var flag:Boolean;
 			var lut:Vector.<uint> = createGraymapGammaTransferLUT(max);
 			
-			for (var y:int = 0; y < height; y++) {
-				row  = readLine(bytes);
-				args = row.split(" ");
+			while(true) {
+				line  = readLine(bytes);
+				if (!line) {
+					if (bytes.position < bytes.length) {
+						continue;
+					}
+					break;
+				}
 				
-				for (var i:int = args.length; i--;) {
+				args = line.split(spaceRe);
+				for (var i:int = 0, l:int = args.length; i < l; i++) {
 					arg = trim(args[i]);
 					if (arg == "") {
-						args.splice(i, 1);
+						continue;
 					}
-					else {
-						args[i] = arg;
+					value = int(arg);
+					color = lut[value];
+					values[index++] = color;
+					// values[x + (y * width)] = color;
+					if (index == values.length) {
+						flag = true;
+						break;
 					}
 				}
 				
-				for (var x:int = 0; x < width; x++) {
-					value = int(args[x]);
-					
-					color = lut[value];
-					values[x + (y * width)] = color;
+				if (flag) {
+					break;
 				}
 			}
 		}
@@ -451,41 +467,64 @@ package com.netpbm.decoder
 		 */
 		private static function decodePixmapASCII(values:Vector.<uint>, bytes:ByteArray, max:int, width:int, height:int):void
 		{
-			var row:String;
+			var line:String;
 			var arg:String;
 			var args:Array;
 			
 			var vr:int, vg:int, vb:int;
 			var r:uint, g:uint, b:uint;
 			var color:uint;
+			var index:int = 0;
+			var flag:Boolean;
 			
 			var lut:Vector.<Vector.<uint>> = createPixmapGammatransferLUT(max);
-			for (var y:int = 0; y < height; y++) {
-				row  = readLine(bytes);
-				args = row.split(" ");
-				
-				for (var i:int = args.length; i--;) {
-					arg = trim(args[i]);
-					if (arg == "") {
-						args.splice(i, 1);
+			var data:Vector.<int> = new Vector.<int>();
+			
+			while (true) {
+				line = readLine(bytes);
+				if (!line) {
+					if (bytes.position< bytes.length) {
+						continue;
 					}
-					else {
-						args[i] = arg;
-					}
+					break;
 				}
 				
-				for (var x:int = 0; x < width; x++) {
-					vr = int(args[x * 3]);
-					vg = int(args[(x * 3) + 1]);
-					vb = int(args[(x * 3) + 2]);
+				args = line.split(spaceRe);
+				for (var i:int = 0, l:int = args.length; i < l; i++) {
+					arg = trim(args[i]);
+					if (arg != ""){
+						data.push(int(arg)); 
+					}
+				}
+				args = null;
+			}
+			
+			var count:int = data.length;
+			if (count > 0) {
+				for (var c:int = 0, m:int = 0; m = (c * 3) + 2; c++) {
+					// out of range
+					if (m >= count) {
+						break;
+					}
+					
+					vr = int(data[c * 3]);
+					vg = int(data[(c * 3) + 1]);
+					vb = int(data[(c * 3) + 2]);
 					
 					r = lut[vr][0];
 					g = lut[vg][0];
 					b = lut[vb][0];
 					
 					color = rgb2pixel(r,g,b);
-					values[x + (y * width)] = color;
-				}
+					values[index++] = color;
+					// values[x + (y * width)] = color;
+					
+					// last value set
+					if (index == values.length) {
+						break;
+					}
+					
+				}	
 			}
 		}
 		
